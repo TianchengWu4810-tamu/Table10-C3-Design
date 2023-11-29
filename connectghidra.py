@@ -11,6 +11,7 @@ import ghidra.program.flatapi
 
 state = getState()
 currentProgram = state.getCurrentProgram()
+print(currentProgram.getImageBase())
 name = currentProgram.getName()
 location = currentProgram.getExecutablePath()
 # print("The currently loaded program is: '{}'".format(name))
@@ -28,12 +29,13 @@ fm = currentProgram.getFunctionManager()
 funcs = fm.getFunctions(True)
 for func in funcs:
     entry_point = func.getEntryPoint()
-    print("Function: {} @ 0x{}".format(func.getName(), entry_point))
-    print(func.getParameters())
-    print("Return type: {}".format(func.getReturnType()))
+    # print("Function: {} @ 0x{}".format(func.getName(), entry_point))
+    # print(func.getParameters())
+    # print("Return type: {}".format(func.getReturnType()))
     newDict = {
         "name": func.getName(),
         "address": entry_point,
+        "parameters": func.getParameters(),
         "return type": func.getReturnType(),
     }
     funcDicts.append(newDict)
