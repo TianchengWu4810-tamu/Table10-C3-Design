@@ -4,6 +4,8 @@ from ghidra.app.decompiler import DecompileOptions
 from ghidra.app.decompiler import DecompInterface
 from ghidra.util.task import ConsoleTaskMonitor
 import ghidra.program.flatapi
+import os
+import csv
 
 bitness = 0
 location = ""
@@ -39,8 +41,8 @@ def check_mem_corruption(simgr):
                 simgr.stashes['unconstrained'].remove(path)
         simgr.drop(stash='active')
 
-    if corruption_detected:
-        print("Memory corruption detected!")
+    # if corruption_detected:
+    #     print("Memory corruption detected!")
     # else:
     #     print("No memory corruption detected in this step.")
 
@@ -73,8 +75,33 @@ def main():
 
     fm = currentProgram.getFunctionManager()
     funcs = fm.getFunctions(True)
-    # for func in funcs:
-    #     entry_point = int ("0x"+func.getEntryPoint().toString(),16)
+    
+    #Specifying CSV file path
+    csv_file_path = os.path.join(os.path.dirname(location), 'output.csv')
+    
+    with open(csv_file_path, 'w') as csvfile:
+        fieldnames = ['Function Name', 'Address', 'Parameters', 'Return Type']
+        csv_writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+        csv_writer.writeheader()
+        
+        for func in funcs:
+            entry_point = func.getEntryPoint()
+            parameters = ', '.join(str(param.getDataType()) for param in func.getParameters())
+            return_type_obj = func.getReturnType()
+            return_type = str(return_type_obj) if return_type_obj else None
+            
+            func_dict = {
+                'Function Name': func.getName(),
+                'Address': entry_point,
+                'Parameters': parameters,
+                'Return Type': return_type
+            }
+
+            # Write the row to the CSV file
+            csv_writer.writerow(func_dict)
+            
+    print("Results written to:", csv_file_path)
     #     print("Function: {} @ 0x{}".format(func.getName(), entry_point))
     #     print(func.getParameters())
     #     print("Return type: {}".format(func.getReturnType()))
