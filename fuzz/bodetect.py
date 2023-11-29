@@ -8,24 +8,10 @@ import ghidra.program.flatapi
 bitness = 0
 location = ""
 
-# def find_symbolic_buffer(state, length): 
-#     stdin = state.posix.stdin
-#     sym_addrs = [ ]
-#     for _, symbol in state.solver.get_variables(location, stdin.ident):
-#         sym_addrs.extend(state.memory.addrs_for_name(next(iter(symbol.variables))))
 
-#     for addr in sym_addrs:
-#         if check_continuity(addr, sym_addrs, length):
-#             yield addr
 
-# def check_continuity(address, addresses, length):
-#     for i in range(length):
-#         if not address + i in addresses:
-#             return False
-#     return True
-
-# def check_mem_corruption(simgr):
-def check_mem_corruption(simgr, funcs):
+def check_mem_corruption(simgr):
+# def check_mem_corruption(simgr, funcs):
     corruption_detected = False
     num_count = (bitness / 8)
     pc_text = b"C" * int(num_count)
@@ -45,8 +31,9 @@ def check_mem_corruption(simgr, funcs):
                     #         corrupted_function = get_function_name(funcs, path.regs.pc)
                     #         print(f"Memory corruption detected in function: {corrupted_function}")
                     #         break
-                    corrupted_function = get_function_name(funcs, before_corrupt_addr)
-                    print(f"Memory corruption detected in function: {corrupted_function}")
+                    
+                    # corrupted_function = get_function_name(funcs, before_corrupt_addr)
+                    # print(f"Memory corruption detected in function: {corrupted_function}")
                     simgr.stashes['mem_corrupt'].append(path)
                     corruption_detected = True
                 simgr.stashes['unconstrained'].remove(path)
@@ -74,33 +61,33 @@ def main():
     name = currentProgram.getName()
     global location
     location = currentProgram.getExecutablePath()
-    print("The currently loaded program is: '{}'".format(name))
-    print("Its location on disk is: '{}'".format(location))
+    # print("The currently loaded program is: '{}'".format(name))
+    # print("Its location on disk is: '{}'".format(location))
     options = DecompileOptions()
     monitor = ConsoleTaskMonitor()
     ifc = DecompInterface()
     ifc.setOptions(options)
     ifc.openProgram(currentProgram)
 
-    mainAdress = 0
-    # funcDicts = []
+    # mainAdress = 0
+
     fm = currentProgram.getFunctionManager()
     funcs = fm.getFunctions(True)
-    for func in funcs:
-        entry_point = int ("0x"+func.getEntryPoint().toString(),16)
-        # print("Function: {} @ 0x{}".format(func.getName(), entry_point))
-        # print(func.getParameters())
-        # print("Return type: {}".format(func.getReturnType()))
-        # print(func.getName())
-        if func.getName() == "main":
-            mainAdress = entry_point
-        # newDict = {
-        #     "name": func.getName(),
-        #     "address": entry_point,
-        #     "parameters": func.getParameters(),
-        #     "return type": func.getReturnType(),
-        # }
-        # funcDicts.append(newDict)
+    # for func in funcs:
+    #     entry_point = int ("0x"+func.getEntryPoint().toString(),16)
+    #     print("Function: {} @ 0x{}".format(func.getName(), entry_point))
+    #     print(func.getParameters())
+    #     print("Return type: {}".format(func.getReturnType()))
+    #     print(func.getName())
+    #     if func.getName() == "main":
+    #         mainAdress = entry_point
+    #     newDict = {
+    #         "name": func.getName(),
+    #         "address": entry_point,
+    #         "parameters": func.getParameters(),
+    #         "return type": func.getReturnType(),
+    #     }
+    #     funcDicts.append(newDict)
 
     
     global bitness
@@ -111,7 +98,7 @@ def main():
     
     # args = parser.parse_args()
 
-    p = angr.Project(location)
+    p = angr.Project("./demo")
 
     arch_info = p.arch
     print(arch_info)
@@ -121,22 +108,31 @@ def main():
     # Angr CFG below:
     # function_mapping = {f.addr: f.name for f in cfg.kb.functions.values()}
 
-    # state = p.factory.entry_state() 
-    state = p.factory.blank_state(addr=start_addr)
+    state = p.factory.entry_state() 
+    # state = p.factory.blank_state(addr=start_addr)
     # state = p.factory.call_state(addr=start_addr)
     # state = p.factory.full_init_state(addr=start_addr)
 
-    print("Test line:")
-    print(state.addr)
+    # print("Test line:")
+    # print(state.addr)
     
     simgr = p.factory.simgr(state, save_unconstrained=True)
     simgr.stashes['mem_corrupt'] = []
     
-    # simgr.explore(step_func=lambda simgr: check_mem_corruption(simgr))
-    simgr.explore(step_func=lambda simgr: check_mem_corruption(simgr, funcs))
+    simgr.explore(step_func=lambda simgr: check_mem_corruption(simgr))
+    # simgr.explore(step_func=lambda simgr: check_mem_corruption(simgr, funcs))
 
     if len(simgr.mem_corrupt) > 0:
         print("Memory corruption detected.")
+        path = simgr.mem_corrupt[0]
+        history = path.history.parents
+        history_elements = []
+        for h_element in history:
+            history_elements.append(h_element)
+        for h_element in reversed(history_elements):
+            if get_function_name(funcs,h_element.addr) != "Unknown":
+                print(f"Memory corruption detected in function: {get_function_name(funcs,h_element.addr)}")
+                break
     else:
         print("No memory corruption found.")
 
