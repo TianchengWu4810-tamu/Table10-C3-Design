@@ -81,7 +81,7 @@ def main():
     start_addr = currentProgram.getImageBase()
     # args = parser.parse_args()
 
-    p = angr.Project(name)
+    p = angr.Project(location)
 
     arch_info = p.arch
     print(arch_info)
