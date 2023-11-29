@@ -6,21 +6,47 @@ from ghidra.util.task import ConsoleTaskMonitor
 import ghidra.program.flatapi
 
 bitness = 0
+location = ""
 
-def check_mem_corruption(simgr):
-# def check_mem_corruption(simgr, function_mapping):
+# def find_symbolic_buffer(state, length): 
+#     stdin = state.posix.stdin
+#     sym_addrs = [ ]
+#     for _, symbol in state.solver.get_variables(location, stdin.ident):
+#         sym_addrs.extend(state.memory.addrs_for_name(next(iter(symbol.variables))))
+
+#     for addr in sym_addrs:
+#         if check_continuity(addr, sym_addrs, length):
+#             yield addr
+
+# def check_continuity(address, addresses, length):
+#     for i in range(length):
+#         if not address + i in addresses:
+#             return False
+#     return True
+
+# def check_mem_corruption(simgr):
+def check_mem_corruption(simgr, funcs):
     corruption_detected = False
     num_count = (bitness / 8)
     pc_text = b"C" * int(num_count)
-    
 
     if len(simgr.unconstrained):
         for path in simgr.unconstrained:
+            # print(path.regs.rip)
             if path.satisfiable(extra_constraints=[path.regs.pc == pc_text]):
                 path.add_constraints(path.regs.pc == pc_text)
                 if path.satisfiable():
-                    # corrupted_function = get_function_name(function_mapping, path.addr)
-                    # print(f"Memory corruption detected in function: {corrupted_function}")
+                    # for buf_addr in find_symbolic_buffer(path, len(num_count)): 
+                    #     memory = path.memory.load(buf_addr, len(num_count)) 
+                    #     sc_bvv = path.solver.BVV(pc_text) 
+                    #     if path.satisfiable(extra_constraints=(memory == sc_bvv,path.regs.pc == buf_addr)):
+                    #         path.add_constraints(memory == sc_bvv) # constrain 1 
+                    #         path.add_constraints(path.regs.pc == buf_addr) # constrain 2 
+                    #         corrupted_function = get_function_name(funcs, path.regs.pc)
+                    #         print(f"Memory corruption detected in function: {corrupted_function}")
+                    #         break
+                    corrupted_function = get_function_name(funcs, before_corrupt_addr)
+                    print(f"Memory corruption detected in function: {corrupted_function}")
                     simgr.stashes['mem_corrupt'].append(path)
                     corruption_detected = True
                 simgr.stashes['unconstrained'].remove(path)
@@ -33,22 +59,20 @@ def check_mem_corruption(simgr):
 
     return simgr
 
-# def get_function_name(function_mapping, addr):
-#     for function_addr, function_name in function_mapping.items():
-#         if function_addr <= addr < function_mapping.get(function_name, function_addr):
-#             return function_name
-#     return "Unknown"
+def get_function_name(funcs, addr):
+    for func in funcs:
+        entry_point = int ("0x"+func.getEntryPoint().toString(),16)
+        end_point = int ("0x"+func.getBody().getMaxAddress().toString(),16)
+        
+        if entry_point <= addr < end_point:
+            return func.getName()
+    return "Unknown"
 
 def main():
-    state = getState()
-    currentProgram = state.getCurrentProgram()
-    print(currentProgram.getImageBase())
-    # image_base = hex(int("0x"+currentProgram.getImageBase().toString(),16))
-    image_base = currentProgram.getImageBase()
-    hex_string = "0x{0:08X}".format(image_base.getOffset())
-    address_int = int(hex_string, 16)
-    print("Image Base: " + image_base)
+    ghidraState = getState()
+    currentProgram = ghidraState.getCurrentProgram()
     name = currentProgram.getName()
+    global location
     location = currentProgram.getExecutablePath()
     print("The currently loaded program is: '{}'".format(name))
     print("Its location on disk is: '{}'".format(location))
@@ -58,29 +82,33 @@ def main():
     ifc.setOptions(options)
     ifc.openProgram(currentProgram)
 
-
-    funcDicts = []
+    mainAdress = 0
+    # funcDicts = []
     fm = currentProgram.getFunctionManager()
     funcs = fm.getFunctions(True)
     for func in funcs:
-        entry_point = func.getEntryPoint()
+        entry_point = int ("0x"+func.getEntryPoint().toString(),16)
         # print("Function: {} @ 0x{}".format(func.getName(), entry_point))
         # print(func.getParameters())
         # print("Return type: {}".format(func.getReturnType()))
-        newDict = {
-            "name": func.getName(),
-            "address": entry_point,
-            "parameters": func.getParameters(),
-            "return type": func.getReturnType(),
-        }
-        funcDicts.append(newDict)
+        # print(func.getName())
+        if func.getName() == "main":
+            mainAdress = entry_point
+        # newDict = {
+        #     "name": func.getName(),
+        #     "address": entry_point,
+        #     "parameters": func.getParameters(),
+        #     "return type": func.getReturnType(),
+        # }
+        # funcDicts.append(newDict)
 
     
     global bitness
     # parser = argparse.ArgumentParser()
 
     # parser.add_argument("Binary")
-    start_addr = address_int
+    start_addr = mainAdress
+    
     # args = parser.parse_args()
 
     p = angr.Project(location)
@@ -89,11 +117,11 @@ def main():
     print(arch_info)
     bitness = p.arch.bits
     print(f"The binary is {bitness}-bit.")
-
-    # cfg = p.analyses.CFGFast()
+    
+    # Angr CFG below:
     # function_mapping = {f.addr: f.name for f in cfg.kb.functions.values()}
 
-    # state = p.factory.entry_state()
+    # state = p.factory.entry_state() 
     state = p.factory.blank_state(addr=start_addr)
     # state = p.factory.call_state(addr=start_addr)
     # state = p.factory.full_init_state(addr=start_addr)
@@ -104,13 +132,13 @@ def main():
     simgr = p.factory.simgr(state, save_unconstrained=True)
     simgr.stashes['mem_corrupt'] = []
     
-    simgr.explore(step_func=lambda simgr: check_mem_corruption(simgr))
-    # simgr.explore(step_func=lambda simgr: check_mem_corruption(simgr, function_mapping))
+    # simgr.explore(step_func=lambda simgr: check_mem_corruption(simgr))
+    simgr.explore(step_func=lambda simgr: check_mem_corruption(simgr, funcs))
 
     if len(simgr.mem_corrupt) > 0:
-        print("Memory corruption detected in the binary.")
+        print("Memory corruption detected.")
     else:
-        print("No memory corruption found in the binary.")
+        print("No memory corruption found.")
 
 
 if __name__ == "__main__":
