@@ -43,8 +43,10 @@ def main():
     state = getState()
     currentProgram = state.getCurrentProgram()
     print(currentProgram.getImageBase())
-    image_base = hex(int("0x"+currentProgram.getImageBase().toString(),16))
-    # hex_string = "0x{0:08X}".format(image_base)
+    # image_base = hex(int("0x"+currentProgram.getImageBase().toString(),16))
+    image_base = currentProgram.getImageBase()
+    hex_string = "0x{0:08X}".format(image_base.getOffset())
+    
     print("Image Base: " + image_base)
     name = currentProgram.getName()
     location = currentProgram.getExecutablePath()
@@ -78,7 +80,7 @@ def main():
     # parser = argparse.ArgumentParser()
 
     # parser.add_argument("Binary")
-    start_addr = currentProgram.getImageBase()
+    start_addr = hex_string
     # args = parser.parse_args()
 
     p = angr.Project(location)
