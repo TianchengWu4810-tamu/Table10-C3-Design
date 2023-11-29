@@ -11,11 +11,11 @@ import ghidra.program.flatapi
 
 state = getState()
 currentProgram = state.getCurrentProgram()
-print(currentProgram.getImageBase())
+print(int("0x"+currentProgram.getImageBase().toString(),16))
 name = currentProgram.getName()
 location = currentProgram.getExecutablePath()
-# print("The currently loaded program is: '{}'".format(name))
-# print("Its location on disk is: '{}'".format(location))
+print("The currently loaded program is: '{}'".format(name))
+print("Its location on disk is: '{}'".format(location))
 
 options = DecompileOptions()
 monitor = ConsoleTaskMonitor()

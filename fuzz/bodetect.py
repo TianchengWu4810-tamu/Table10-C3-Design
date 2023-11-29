@@ -1,4 +1,10 @@
-import angr, argparse, IPython
+import angr, argparse
+import ghidra
+from ghidra.app.decompiler import DecompileOptions
+from ghidra.app.decompiler import DecompInterface
+from ghidra.util.task import ConsoleTaskMonitor
+import ghidra.program.flatapi
+
 bitness = 0
 
 def check_mem_corruption(simgr):
@@ -34,14 +40,48 @@ def check_mem_corruption(simgr):
 #     return "Unknown"
 
 def main():
+    state = getState()
+    currentProgram = state.getCurrentProgram()
+    print(currentProgram.getImageBase())
+    image_base = hex(int("0x"+currentProgram.getImageBase().toString(),16))
+    # hex_string = "0x{0:08X}".format(image_base)
+    print("Image Base: " + image_base)
+    name = currentProgram.getName()
+    location = currentProgram.getExecutablePath()
+    print("The currently loaded program is: '{}'".format(name))
+    print("Its location on disk is: '{}'".format(location))
+    options = DecompileOptions()
+    monitor = ConsoleTaskMonitor()
+    ifc = DecompInterface()
+    ifc.setOptions(options)
+    ifc.openProgram(currentProgram)
+
+
+    funcDicts = []
+    fm = currentProgram.getFunctionManager()
+    funcs = fm.getFunctions(True)
+    for func in funcs:
+        entry_point = func.getEntryPoint()
+        # print("Function: {} @ 0x{}".format(func.getName(), entry_point))
+        # print(func.getParameters())
+        # print("Return type: {}".format(func.getReturnType()))
+        newDict = {
+            "name": func.getName(),
+            "address": entry_point,
+            "parameters": func.getParameters(),
+            "return type": func.getReturnType(),
+        }
+        funcDicts.append(newDict)
+
+    
     global bitness
-    parser = argparse.ArgumentParser()
+    # parser = argparse.ArgumentParser()
 
-    parser.add_argument("Binary")
-    # start_addr = 0x00405008
-    args = parser.parse_args()
+    # parser.add_argument("Binary")
+    start_addr = currentProgram.getImageBase()
+    # args = parser.parse_args()
 
-    p = angr.Project(args.Binary)
+    p = angr.Project(name)
 
     arch_info = p.arch
     print(arch_info)
@@ -51,8 +91,8 @@ def main():
     # cfg = p.analyses.CFGFast()
     # function_mapping = {f.addr: f.name for f in cfg.kb.functions.values()}
 
-    state = p.factory.entry_state()
-    # state = p.factory.blank_state(addr=start_addr)
+    # state = p.factory.entry_state()
+    state = p.factory.blank_state(addr=start_addr)
     # state = p.factory.call_state(addr=start_addr)
     # state = p.factory.full_init_state(addr=start_addr)
 
@@ -70,7 +110,6 @@ def main():
     else:
         print("No memory corruption found in the binary.")
 
-    IPython.embed()
 
 if __name__ == "__main__":
     main()
