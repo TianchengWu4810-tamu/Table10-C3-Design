@@ -1,0 +1,31 @@
+The currently loaded program is: 'demo'
+Its location on disk is: '/home/daniel/Documents/Table10-C3-Design/fuzz/demo'
+Function Name,Start Address,End Address,Parameters,Return Type
+_init,00401000,0040101a,EVP_PKEY_CTX *,int
+FUN_00401020,00401020,0040102c,,undefined
+strcpy,00401090,0040109a,char *|char *,char *
+puts,004010a0,004010aa,char *,int
+printf,004010b0,004010ba,char *,int
+read,004010c0,004010ca,int|void *|typedef size_t ulong,typedef ssize_t __ssize_t
+malloc,004010d0,004010da,typedef size_t ulong,void *
+FUN_004010e0,004010e0,004010ea,,undefined
+_start,004010f0,00401115,,undefined
+_dl_relocate_static_pie,00401120,00401124,,undefined
+deregister_tm_clones,00401130,00401150,,undefined
+register_tm_clones,00401160,00401190,,undefined
+__do_global_dtors_aux,004011a0,004011c0,,undefined
+frame_dummy,004011d0,004011d5,,undefined
+sample_func,004011d6,0040120a,,undefined
+testing,0040120b,00401229,,undefined
+initialize_component,0040122a,00401292,,undefined
+main,00401293,00401336,,undefined
+_fini,00401338,00401344,,undefined
+__libc_start_main,00405000,00405000,,undefined
+strcpy,00405008,00405008,char *|char *,char *
+puts,00405010,00405010,char *,int
+printf,00405018,00405018,char *,int
+read,00405020,00405020,int|void *|typedef size_t ulong,typedef ssize_t __ssize_t
+__gmon_start__,00405028,00405028,,undefined
+malloc,00405030,00405030,typedef size_t ulong,void *
+mprotect,00405038,00405038,void *|typedef size_t ulong|int,int
+Memory corruption detected in function: FUN_004010e0
