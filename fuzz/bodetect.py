@@ -49,11 +49,18 @@ def check_mem_corruption(simgr):
     return simgr
 
 def get_function_name(funcs, addr):
+    print("addr: ")
+    print (addr)
+    
     for func in funcs:
         entry_point = int ("0x"+func.getEntryPoint().toString(),16)
         end_point = int ("0x"+func.getBody().getMaxAddress().toString(),16)
-        
-        if entry_point <= addr < end_point:
+        # print("//////entry_point:///////")
+        # print(entry_point)
+        # print("//////end_point:///////")
+        # print(end_point)
+        if (entry_point <= addr) and (addr < end_point):
+            print(func.getName())
             return func.getName()
     return "Unknown"
 
@@ -95,37 +102,37 @@ def main():
                 'Function Name': func.getName(),
                 'Address': entry_point,
                 'Parameters': parameters,
-                'Return Type': return_type
+                'Return Type': return_type,
+                # 'Buffer Overflow Checker': "False"
             }
 
             # Write the row to the CSV file
             csv_writer.writerow(func_dict)
             
     print("Results written to:", csv_file_path)
-    #     print("Function: {} @ 0x{}".format(func.getName(), entry_point))
-    #     print(func.getParameters())
-    #     print("Return type: {}".format(func.getReturnType()))
-    #     print(func.getName())
-    #     if func.getName() == "main":
-    #         mainAdress = entry_point
-    #     newDict = {
-    #         "name": func.getName(),
-    #         "address": entry_point,
-    #         "parameters": func.getParameters(),
-    #         "return type": func.getReturnType(),
-    #     }
-    #     funcDicts.append(newDict)
+        # print("Function: {} @ 0x{}".format(func.getName(), entry_point))
+        # print(func.getParameters())
+        # print("Return type: {}".format(func.getReturnType()))
+        # print(func.getName())
+        # if func.getName() == "main":
+        #     mainAdress = entry_point
+        # newDict = {
+        #     "name": func.getName(),
+        #     "address": entry_point,
+        #     "parameters": func.getParameters(),
+        #     "return type": func.getReturnType(),
+        # }
+        # funcDicts.append(newDict)
 
     
     global bitness
     # parser = argparse.ArgumentParser()
 
     # parser.add_argument("Binary")
-    start_addr = mainAdress
     
     # args = parser.parse_args()
 
-    p = angr.Project("./demo")
+    p = angr.Project(location)
 
     arch_info = p.arch
     print(arch_info)
@@ -157,9 +164,13 @@ def main():
         for h_element in history:
             history_elements.append(h_element)
         for h_element in reversed(history_elements):
-            if get_function_name(funcs,h_element.addr) != "Unknown":
-                print(f"Memory corruption detected in function: {get_function_name(funcs,h_element.addr)}")
+            function_name = get_function_name(funcs, h_element.addr) 
+            if function_name != "Unknown":
+                print(f"Memory corruption detected in function: {function_name}")
+                
                 break
+            
+            funcs = fm.getFunctions(True)
     else:
         print("No memory corruption found.")
 
