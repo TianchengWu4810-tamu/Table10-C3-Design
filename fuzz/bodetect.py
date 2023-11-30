@@ -80,20 +80,22 @@ def main():
     csv_file_path = os.path.join(os.path.dirname(location), 'output.csv')
     
     with open(csv_file_path, 'w') as csvfile:
-        fieldnames = ['Function Name', 'Address', 'Parameters', 'Return Type']
+        fieldnames = ['Function Name', 'Start Address', 'End Address', 'Parameters', 'Return Type']
         csv_writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
         csv_writer.writeheader()
         
         for func in funcs:
             entry_point = func.getEntryPoint()
+            end_point = func.getBody().getMaxAddress()
             parameters = ', '.join(str(param.getDataType()) for param in func.getParameters())
             return_type_obj = func.getReturnType()
             return_type = str(return_type_obj) if return_type_obj else None
             
             func_dict = {
                 'Function Name': func.getName(),
-                'Address': entry_point,
+                'Start Address': entry_point,
+                'End Address': end_point,
                 'Parameters': parameters,
                 'Return Type': return_type
             }
